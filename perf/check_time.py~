@@ -1,0 +1,17 @@
+files = ['agdo.csv.50000-100000', 'agd.csv.50000-100000', 'tfocso.csv.50000-100000', 'tfocs.csv.50000-100000']
+
+# Here just making sure that the number of iterations is the same (0.0 dummy value returned).
+data = None
+for name in files:
+    #print name
+    d = open(name, 'r+').read()
+    if not data:
+        data = d
+    else:
+        assert data == d
+
+time_files = ['agdo_time.csv.50000-100000', 'agd_time.csv.50000-100000', 'gd_time.csv.50000-100000', 'tfocso_time.csv.50000-100000', 'tfocsf_time.csv.50000-100000', 'tfocs_time.csv.50000-100000']
+
+for name in time_files:
+    f = open(name, 'r+')
+    print name + '\t' + `float(f.read()) / 1e6`

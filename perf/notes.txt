@@ -1,0 +1,14 @@
+https://docs.google.com/spreadsheets/d/1Z5Llixtp8hAtYuHihupzQoXnz8NWDBmrV4Fr5HsbRYY/edit?usp=sharing
+
+SPARK_CONF_DIR=conf ~/spark/bin/spark-submit target/scala-2.10/tfocs-perf-test-assembly-1.0-SNAPSHOT.jar 0 0
+
+for i in `seq 0 5`; do SPARK_CONF_DIR=conf ~/spark/bin/spark-submit target/scala-2.10/tfocs-perf-test-assembly-1.0-SNAPSHOT.jar $i $i; done
+
+~/ephemeral-hdfs/bin/hadoop fs -ls 'hdfs://ec2-52-24-61-10.us-west-2.compute.amazonaws.com:9000/aaron*'
+
+~/ephemeral-hdfs/bin/hadoop dfsadmin -report
+
+~/ephemeral-hdfs/bin/hadoop fs -rmr 'hdfs://ec2-52-24-61-10.us-west-2.compute.amazonaws.com:9000/aaron*'
+
+./clean.sh 
+
