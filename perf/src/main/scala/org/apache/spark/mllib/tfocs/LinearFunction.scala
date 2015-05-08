@@ -18,7 +18,7 @@
 package org.apache.spark.mllib.tfocs
 
 import org.apache.spark.mllib.linalg.BLAS
-import org.apache.spark.mllib.linalg.{Vector, Vectors}
+import org.apache.spark.mllib.linalg.{ Vector, Vectors }
 import org.apache.spark.rdd.RDD
 
 /**

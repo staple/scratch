@@ -52,14 +52,14 @@ object VectorSpace {
 
     override def dot(a: Vector, b: Vector): Double = BLAS.dot(a, b)
 
-    override def toStr(a: Vector): String = s"${a.toArray.slice(0,10).mkString(" ")}"
+    override def toStr(a: Vector): String = s"${a.toArray.slice(0, 10).mkString(" ")}"
   }
 
   implicit object RDDDoubleVectorSpace extends VectorSpace[RDD[Double]] {
 
     override def combine(alpha: Double, a: RDD[Double], beta: Double, b: RDD[Double]): RDD[Double] =
       a.zip(b).map(x => alpha * x._1 + beta * x._2)
-      // Cases where alpha or beta == 0 may be special cased if used.
+    // Cases where alpha or beta == 0 may be special cased if used.
 
     override def dot(a: RDD[Double], b: RDD[Double]): Double =
       a.zip(b).treeAggregate(0.0)((sum, x) => sum + x._1 * x._2, _ + _)

@@ -20,12 +20,12 @@ package org.apache.spark.mllib.optimization
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.Breaks._
 
-import breeze.linalg.{DenseVector => BDV, norm}
+import breeze.linalg.{ DenseVector => BDV, norm }
 
 import org.apache.spark.Logging
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.linalg.{Vectors, Vector}
+import org.apache.spark.mllib.linalg.{ Vectors, Vector }
 import org.apache.spark.mllib.rdd.RDDFunctions._
 
 /**
@@ -38,8 +38,8 @@ import org.apache.spark.mllib.rdd.RDDFunctions._
  * @param updater Delegate that updates weights in the direction of a gradient.
  */
 @DeveloperApi
-class AcceleratedGradientDescent (private var gradient: Gradient, private var updater: Updater)
-  extends Optimizer {
+class AcceleratedGradientDescent(private var gradient: Gradient, private var updater: Updater)
+    extends Optimizer {
 
   private var convergenceTol: Double = 1e-4
   private var numIterations: Int = 100
@@ -175,18 +175,18 @@ object AcceleratedGradientDescent extends Logging {
    *         loss computed on each iteration.
    */
   def run(
-      data: RDD[(Double, Vector)],
-      gradient: Gradient,
-      updater: Updater,
-      convergenceTol: Double,
-      numIterations: Int,
-      regParam: Double,
-      initialWeights: Vector,
-      L0: Double,
-      Lexact: Double,
-      beta: Double,
-      alpha: Double,
-      mayRestart: Boolean): (Vector, Array[Double]) = {
+    data: RDD[(Double, Vector)],
+    gradient: Gradient,
+    updater: Updater,
+    convergenceTol: Double,
+    numIterations: Int,
+    regParam: Double,
+    initialWeights: Vector,
+    L0: Double,
+    Lexact: Double,
+    beta: Double,
+    alpha: Double,
+    mayRestart: Boolean): (Vector, Array[Double]) = {
 
     /** Returns the loss function and gradient for the provided weights 'x'. */
     def applySmooth(x: BDV[Double]): (Double, BDV[Double]) = {
@@ -194,9 +194,10 @@ object AcceleratedGradientDescent extends Logging {
 
       // Sum the loss function and gradient computed for each training example.
       val (loss, grad, count) = data.treeAggregate((0.0, BDV.zeros[Double](x.size), 0L))(
-        seqOp = (c, v) => (c, v) match { case ((loss, grad, count), (label, features)) =>
-          val l = gradient.compute(features, label, bcX.value, Vectors.fromBreeze(grad))
-          (loss + l, grad, count + 1)
+        seqOp = (c, v) => (c, v) match {
+          case ((loss, grad, count), (label, features)) =>
+            val l = gradient.compute(features, label, bcX.value, Vectors.fromBreeze(grad))
+            (loss + l, grad, count + 1)
         },
         combOp = (c1, c2) => (c1, c2) match {
           case ((loss1, grad1, count1), (loss2, grad2, count2)) =>
@@ -213,11 +214,11 @@ object AcceleratedGradientDescent extends Logging {
      */
     def applyProjector(x: BDV[Double], g: BDV[Double], step: Double): (Double, BDV[Double]) = {
       val (weights, regularization) = updater.compute(Vectors.fromBreeze(x),
-                                                      Vectors.fromBreeze(g),
-                                                      step,
-                                                      iter = 1, // Passing 1 avoids step size
-                                                                // rescaling within the updater.
-                                                      regParam)
+        Vectors.fromBreeze(g),
+        step,
+        iter = 1, // Passing 1 avoids step size
+        // rescaling within the updater.
+        regParam)
       (regularization, BDV[Double](weights.toArray))
     }
 
@@ -227,110 +228,112 @@ object AcceleratedGradientDescent extends Logging {
     val lossHistory = new ArrayBuffer[Double](numIterations)
 
     var f_y = 0.0
-    var g_y = BDV[Double](Vectors.zeros(initialWeights.size).toArray) 
+    var g_y = BDV[Double](Vectors.zeros(initialWeights.size).toArray)
 
     var L = L0
 
     var backtrack_simple = true
     val backtrack_tol = 1e-10
 
-    breakable { for (nIter <- 1 to numIterations) {
+    breakable {
+      for (nIter <- 1 to numIterations) {
 
-      // Auslender and Teboulle's accelerated method.
+        // Auslender and Teboulle's accelerated method.
 
-      val (x_old, z_old) = (x, z)
-      val L_old = L
-      L = L * alpha
-      val theta_old = theta
+        val (x_old, z_old) = (x, z)
+        val L_old = L
+        L = L * alpha
+        val theta_old = theta
 
-      breakable { while (true) {
+        breakable {
+          while (true) {
 
-        theta = 2.0 / (1.0 + math.sqrt(1.0 + 4.0 * (L / L_old) / (theta_old * theta_old)))
-        val y = x_old * (1.0 - theta) + z_old * theta
-        val (f_y_, g_y_) = applySmooth(y)
-        f_y = f_y_
-        g_y = g_y_
-        val step = 1.0 / ( theta * L )
-        z = applyProjector(z_old, g_y, step)._2
-        x = x_old * (1.0 - theta) + z * theta
+            theta = 2.0 / (1.0 + math.sqrt(1.0 + 4.0 * (L / L_old) / (theta_old * theta_old)))
+            val y = x_old * (1.0 - theta) + z_old * theta
+            val (f_y_, g_y_) = applySmooth(y)
+            f_y = f_y_
+            g_y = g_y_
+            val step = 1.0 / (theta * L)
+            z = applyProjector(z_old, g_y, step)._2
+            x = x_old * (1.0 - theta) + z * theta
 
-        if (beta >= 1.0) {
+            if (beta >= 1.0) {
+              break
+            }
+
+            // Backtracking.
+
+            val xy = x - y
+            val xy_sq = math.pow(norm(xy), 2)
+            if (xy_sq == 0) {
+              break
+            }
+
+            val (f_x, g_x) = applySmooth(x)
+            var localL = 0.0
+
+            if (backtrack_simple) {
+              val q_x = f_y + xy.dot(g_y) + 0.5 * L * xy_sq
+              localL = L + 2.0 * math.max(f_x - q_x, 0.0) / xy_sq
+              backtrack_simple = (math.abs(f_y - f_x) >= backtrack_tol * math.max(math.abs(f_x), math.abs(f_y)))
+            } else {
+              localL = 2.0 * (x - y).dot(g_x - g_y) / xy_sq
+            }
+
+            if (localL <= L || L >= Lexact) {
+              break
+            }
+
+            if (!localL.isInfinity) {
+              L = math.min(Lexact, localL)
+            } else if (localL.isInfinity) {
+              localL = L
+            }
+
+            L = math.min(Lexact, math.max(localL, L / beta))
+          }
+        }
+
+        // Track loss history using the loss function at y, since f_y is already available and
+        // computing f_x would require another (distributed) call to applySmooth. Start by finding
+        // c_y, the regularization component of the loss function at y.
+        // val (c_y, _) = applyProjector(y, g_y, 0.0)
+        // lossHistory.append(f_y + c_y)
+        // TODO Use f_x when available.
+
+        {
+          // Temporarily tracking loss history at x instead of y, to validate against TFOCS.
+          // // val (f_x, g_x) = applySmooth(x)
+          // // val (c_x, _) = applyProjector(x, g_x, 0.0)
+          // // lossHistory.append(f_x + c_x)
+          lossHistory.append(0.0)
+        }
+
+        if (f_y.isNaN || f_y.isInfinity) {
+          logWarning("Unable to compute loss function.")
           break
         }
 
-        // Backtracking.
+        // Check convergence.
+        val norm_x = norm(x)
+        val norm_dx = norm(x - x_old)
+        // if (norm_dx == 0.0) {
+        //   if (nIter > 1) {
+        //     break
+        //   }
+        // }
+        // if (norm_dx < convergenceTol * math.max(norm_x, 1)) {
+        //   break
+        // }
 
-        val xy = x - y
-        val xy_sq = math.pow(norm(xy), 2)
-        if (xy_sq == 0) {
-          break
+        // Restart acceleration if indicated by the gradient test from O'Donoghue and Candes 2013.
+        if (mayRestart && g_y.dot(x - x_old) > 0.0) {
+          z = x
+          theta = Double.PositiveInfinity
+          backtrack_simple = true
         }
-
-        val (f_x, g_x) = applySmooth(x)
-        var localL = 0.0
-
-        if (backtrack_simple) {
-          val q_x = f_y + xy.dot(g_y) + 0.5 * L * xy_sq
-          localL = L + 2.0 * math.max(f_x - q_x, 0.0) / xy_sq
-          backtrack_simple = (math.abs(f_y - f_x) >= backtrack_tol * math.max(math.abs(f_x), math.abs(f_y)))
-        }
-        else {
-          localL = 2.0 * (x - y).dot(g_x - g_y) / xy_sq
-        }
-
-        if (localL <= L || L >= Lexact) {
-          break
-        }
-
-        if (!localL.isInfinity) {
-          L = math.min(Lexact, localL)
-        }
-        else if (localL.isInfinity) {
-          localL = L
-        }
-
-        L = math.min(Lexact, math.max(localL, L / beta))
-      } }
-
-      // Track loss history using the loss function at y, since f_y is already available and
-      // computing f_x would require another (distributed) call to applySmooth. Start by finding
-      // c_y, the regularization component of the loss function at y.
-      // val (c_y, _) = applyProjector(y, g_y, 0.0)
-      // lossHistory.append(f_y + c_y)
-      // TODO Use f_x when available.
-
-      {
-        // Temporarily tracking loss history at x instead of y, to validate against TFOCS.
-        // // val (f_x, g_x) = applySmooth(x)
-        // // val (c_x, _) = applyProjector(x, g_x, 0.0)
-        // // lossHistory.append(f_x + c_x)
-	  lossHistory.append(0.0)
       }
-
-      if (f_y.isNaN || f_y.isInfinity) {
-        logWarning("Unable to compute loss function.")
-        break
-      }
-
-      // Check convergence.
-      val norm_x = norm(x)
-      val norm_dx = norm(x - x_old)
-      // if (norm_dx == 0.0) {
-      //   if (nIter > 1) {
-      //     break
-      //   }
-      // }
-      // if (norm_dx < convergenceTol * math.max(norm_x, 1)) {
-      //   break
-      // }
-
-      // Restart acceleration if indicated by the gradient test from O'Donoghue and Candes 2013.
-      if (mayRestart && g_y.dot(x - x_old) > 0.0) {
-        z = x
-        theta = Double.PositiveInfinity
-        backtrack_simple = true
-      }
-    } }
+    }
 
     logInfo("AcceleratedGradientDescent.run finished. Last 10 losses %s".format(
       lossHistory.takeRight(10).mkString(", ")))

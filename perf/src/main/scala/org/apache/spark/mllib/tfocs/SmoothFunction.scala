@@ -19,7 +19,7 @@ package org.apache.spark.mllib.tfocs
 
 import org.apache.spark.rdd.RDD
 
-import org.apache.spark.mllib.linalg.{Vectors, Vector}
+import org.apache.spark.mllib.linalg.{ Vectors, Vector }
 import org.apache.spark.mllib.linalg.BLAS
 
 import scala.concurrent._
@@ -38,7 +38,7 @@ trait SmoothFunction[X] {
   /**
    * Evaluates this function at x.
    */
-  def apply(x: X): Double = apply(x, Mode(f=true, g=false)).f.get
+  def apply(x: X): Double = apply(x, Mode(f = true, g = false)).f.get
 
   def two(x: X, data: RDD[Vector], features: Int): (Double, Vector)
 
@@ -46,7 +46,7 @@ trait SmoothFunction[X] {
 }
 
 class SquaredErrorRDDDouble(x0: RDD[Double]) extends SmoothFunction[RDD[Double]] {
-  
+
   x0.cache()
 
   override def apply(x: RDD[Double], mode: Mode): Value[Double, RDD[Double]] = {
@@ -72,7 +72,7 @@ class SquaredErrorRDDDouble(x0: RDD[Double]) extends SmoothFunction[RDD[Double]]
     val g = x.zip(x0).map(x => x._1 - x._2)
     g.cache()
     val f: Future[Double] = scala.concurrent.future {
-    	g.treeAggregate(0.0)((sum, z) => sum + z * z, _ + _) / 2.0
+      g.treeAggregate(0.0)((sum, z) => sum + z * z, _ + _) / 2.0
     }
     (f, g)
   }

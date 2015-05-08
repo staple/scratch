@@ -17,7 +17,7 @@
 
 package org.apache.spark.mllib.tfocs
 
-import org.apache.spark.mllib.linalg.{DenseVector, Vector, Vectors}
+import org.apache.spark.mllib.linalg.{ DenseVector, Vector, Vectors }
 
 /**
  * Trait for prox-capable functions.
@@ -31,8 +31,7 @@ trait ProxCapableFunction[X] {
   /**
    * Evaluates this function at x.
    */
-  def apply(x: X): Double = apply(x, 0.0, Mode(f=true, g=false)).f.get
-
+  def apply(x: X): Double = apply(x, 0.0, Mode(f = true, g = false)).f.get
 
   // another option is
   // def prox(t: Double): SmoothFunction[X, Y]
